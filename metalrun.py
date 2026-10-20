@@ -5,7 +5,6 @@ import numpy as np
 dev = Metal.MTLCreateSystemDefaultDevice()
 queue = dev.newCommandQueue()
 
-
 def run(src, fn, bufs, n):
     """Compile `src`, run kernel `fn` over `n` threads. `bufs` are numpy arrays bound to
     [[buffer(0)]], [[buffer(1)]], ... and are updated in place with the GPU results."""
@@ -32,9 +31,9 @@ if __name__ == "__main__":
     #include <metal_stdlib>
     using namespace metal;
     kernel void add(device const float *a, device const float *b, device float *out, uint i [[thread_position_in_grid]]) {
-        out[i] = a[i] + b[i];
+        out[i] = a[i] * b[i];
     }
     """
-    a, b, out = np.arange(8, dtype=np.float32), np.ones(8, dtype=np.float32), np.zeros(8, dtype=np.float32)
+    a, b, out = np.arange(8, dtype=np.float32), np.arange(8, dtype=np.float32), np.zeros(8, dtype=np.float32)
     run(src, "add", [a, b, out], 8)
     print(out)
