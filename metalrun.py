@@ -32,10 +32,10 @@ def run(src, fn, bufs, n):
 #    sample_buffer = dev.makeCounterSampleBuffer().alloc().init()
     enc.dispatchThreads_threadsPerThreadgroup_(Metal.MTLSizeMake(n, 1, 1), Metal.MTLSizeMake(w, 1, 1))
     enc.endEncoding()
-    start = time.time_ns()
     cmd.commit()
     cmd.waitUntilCompleted()
-    end = time.time_ns()
+    start = cmd.GPUStartTime()
+    end = cmd.GPUEndTime()
     for a, b in zip(bufs, mbufs):
         a[...] = np.frombuffer(b.contents().as_buffer(a.nbytes), dtype=a.dtype).reshape(a.shape)
     return (end, start)
@@ -46,15 +46,17 @@ if __name__ == "__main__":
     #include <metal_stdlib>
     using namespace metal;
     kernel void add(device const float *a, device const float *b, device float *out, uint i [[thread_position_in_grid]]) {
-        out[i] = sqrt(a[i]) * sqrt(b[i]);
+        out[i] = a[i] * b[i];
     }
     """
-    size = 1000000000
+    size = 1 << 25
     prev = None
     for i in range(10):
-        a, b, out = np.arange(1000, dtype=np.float32), np.arange(1000, dtype=np.float32), np.zeros(1000, dtype=np.float32)
+        a, b, out = np.arange(size, dtype=np.float32), np.arange(size, dtype=np.float32), np.zeros(size, dtype=np.float32)
         (end, start) = run(src, "add", [a, b, out], size)
-        print(f"Run {i}: {end - start} ns")
+        time_s = (end - start)
+        flops = size / time_s
+        print(f"Run {i}: {time_s*1e6:.2f} us, {flops/1e9:.2f} Gflops")
         if prev is not None:
             matches = out == prev
             print(np.any(matches == False))
