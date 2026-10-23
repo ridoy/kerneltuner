@@ -5,6 +5,13 @@ import numpy as np
 dev = Metal.MTLCreateSystemDefaultDevice()
 queue = dev.newCommandQueue()
 
+'''
+TODOs
+Timing instrumentation
+Output theoretical flops?
+Output graphs per working set size
+'''
+
 def run(src, fn, bufs, n):
     """Compile `src`, run kernel `fn` over `n` threads. `bufs` are numpy arrays bound to
     [[buffer(0)]], [[buffer(1)]], ... and are updated in place with the GPU results."""
@@ -34,6 +41,7 @@ if __name__ == "__main__":
         out[i] = a[i] * b[i];
     }
     """
-    a, b, out = np.arange(8, dtype=np.float32), np.arange(8, dtype=np.float32), np.zeros(8, dtype=np.float32)
+    size = 1000
+    a, b, out = np.arange(1000, dtype=np.float32), np.arange(1000, dtype=np.float32), np.zeros(1000, dtype=np.float32)
     run(src, "add", [a, b, out], 8)
     print(out)
