@@ -1,4 +1,5 @@
 # pip install pyobjc-framework-Metal numpy
+import os
 import Metal
 import time
 import numpy as np
@@ -42,22 +43,24 @@ def run(src, fn, bufs, n):
 
 
 if __name__ == "__main__":
-    src = """
-    #include <metal_stdlib>
-    using namespace metal;
-    kernel void add(device const float *a, device const float *b, device float *out, uint i [[thread_position_in_grid]]) {
-        out[i] = a[i] * b[i];
-    }
-    """
-    size = 1 << 25
-    prev = None
-    for i in range(10):
-        a, b, out = np.arange(size, dtype=np.float32), np.arange(size, dtype=np.float32), np.zeros(size, dtype=np.float32)
-        (end, start) = run(src, "add", [a, b, out], size)
-        time_s = (end - start)
-        flops = size / time_s
-        print(f"Run {i}: {time_s*1e6:.2f} us, {flops/1e9:.2f} Gflops")
-        if prev is not None:
-            matches = out == prev
-            print(np.any(matches == False))
-        prev = out
+    if int(os.environ.get("RUN")) >= 1:
+        src = """
+        #include <metal_stdlib>
+        using namespace metal;
+        kernel void add(device const float *a, device const float *b, device float *out, uint i [[thread_position_in_grid]]) {
+            out[i] = a[i] * b[i] * a[i];
+        }
+        """
+        size = 1 << 25
+        prev = None
+        for i in range(10):
+            a, b, out = np.arange(size, dtype=np.float32), np.arange(size, dtype=np.float32), np.zeros(size, dtype=np.float32)
+            c = np.arange(size, dtype=np.float32)
+            (end, start) = run(src, "add", [a, b, out], size)
+            time_s = (end - start)
+            flops = size / time_s
+            print(f"Run {i}: {time_s*1e6:.2f} us, {flops/1e9:.2f} Gflops")
+            if prev is not None:
+                matches = out == prev
+                print(np.any(matches == False))
+            prev = out
